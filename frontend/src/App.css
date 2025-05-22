@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+@theme {
+    --color-magenta: #8e44ad;
+     --color-tahiti: #3ab7bf;
+}
