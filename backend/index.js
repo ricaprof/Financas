@@ -1,24 +1,20 @@
 import express from "express";
 import cors from "cors";
-import users from "./Routes/users.js";
-import { authenticate, authRoutes} from "./middleware/auth.js";
+import usersRoutes from "./Routes/users.js"; // Pode manter 'users' se preferir
+import { authenticate, authRoutes} from "./middleware/auth.js"; //
 
 const app = express();
 
 app.use(express.json());
 app.use(cors());
 
-app.use('/', users);
+// Montar rotas de usuários sob um prefixo /api para evitar conflitos e melhor organização
+app.use('/api/users', usersRoutes); // Agora as rotas de users.js estarão em /api/users/*
+app.use('/api/auth', authRoutes);   // Rotas de autenticação em /api/auth/*
 
-
-app.use('/auth', authRoutes); // Login: POST /auth/login
-
-//Exemplo de uso após autenticação
-// app.use('/rotaAutenticada', authenticate, Rota aqui);
-
-
-app.listen(8801);
-
+app.listen(8801, () => { //
+    console.log("Backend server is running on port 8801");
+});
 
 /* 
 TODO

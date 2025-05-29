@@ -1,21 +1,28 @@
 // App.js corrigido
 import { BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
 
-import Empresa from './pages/Acao';
-import Login from './pages/Login';
-import Inicio from './pages/Inicio';
-import Empresas from './pages/Empresas';
+import Empresa from './pages/Acao'; //
+import Login from './pages/Login'; //
+import Inicio from './pages/Inicio'; //
+import Empresas from './pages/Empresas'; //
+import PerfilUsuario from './pages/PerfilUsuario'; // Nova importação
 
 function App() {
-  const token = localStorage.getItem("accessToken");
+  const token = localStorage.getItem("accessToken"); //
 
   return (
     <Router>
         <Routes>
           <Route path="/" element={<Inicio />} />
-          <Route path="/acao/:empresa" element={<Empresa />} /> {/*Olhar documentação a seguir*/}
-          <Route path="/login" element={<Login />} />
-          <Route path="/empresas" element={<Empresas />} />
+          <Route path="/acao/:empresa" element={token ? <Empresa /> : <Navigate to="/login" replace />} /> {/* Protegendo rota de ação */}
+          <Route path="/login" element={!token ? <Login /> : <Navigate to="/empresas" replace />} /> {/* Se logado, redireciona do login */}
+          <Route path="/empresas" element={token ? <Empresas /> : <Navigate to="/login" replace />} /> {/* Protegendo rota de empresas */}
+          <Route 
+            path="/perfil" 
+            element={token ? <PerfilUsuario /> : <Navigate to="/login" replace />} 
+          /> {/* Nova rota protegida */}
+          {/* Adicionar uma rota para lidar com 404 ou redirecionar para Início */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     </Router>
   );
