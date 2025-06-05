@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, DollarSign, Users, BarChart3, Target, Activity, AlertCircle } from 'lucide-react';
 import * as Tooltips from '@radix-ui/react-tooltip';
+import CommentsSection from '../components/CommentsSection'; // Importando o componente de comentários
 
 
 
@@ -310,25 +311,18 @@ const MetricCard = ({ title, tooltips, value, change, changePercent, icon: Icon,
             </div>
           </div>
         </div>
+<CommentsSection />
 
-        {/* Summary */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumo da Análise</h3>
-          <div className="space-y-3 text-gray-700">
-            <p><strong>Desempenho:</strong> A ação apresentou valorização de {priceChangePercent.toFixed(1)}% no último mês, com volume de negociação acima da média.</p>
-            <p><strong>Fundamentos:</strong> P/L de 8.4x indica empresa subvalorizada em relação ao setor. ROE de 12.5% demonstra boa rentabilidade.</p>
-            <p><strong>Dividendos:</strong> Dividend Yield de 6.8% oferece boa remuneração aos acionistas.</p>
-            <p><strong>Endividamento:</strong> Dívida líquida controlada em 0.45x o EBITDA, indicando saúde financeira sólida.</p>
-          </div>
-        </div>
-      </div>
+       
+            </div>
     </div>
   );
 };
 
 export default CompanyAnalysisDashboard;
 
-//TODO:
+
+// Adicione ao final do componente CompanyAnalysisDashboard (antes do export default)
 /*
 O quejá temos:
 Consegui buscar dados da cotação por meio de uma API, mas não P/L, PVP, etc...
