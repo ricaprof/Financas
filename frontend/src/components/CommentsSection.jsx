@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { API_URL } from '../const/const';
+import { API_URL , token} from '../const/const';
 
+import { useParams } from 'react-router-dom';
 
-const CommentsSection = ({ companyId, userId }) => {
+const CommentsSection = ({ userId }) => {
+  const { empresa } = useParams(); // ← Pegando companyempresa da URL
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_URL}/comments/${companyId}`)
-      .then(res => res.json())
+    if (!empresa) return;
+    
+    fetch(`${API_URL}/comments/get/${empresa}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+    })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Erro ao carregar comentários');
+        }
+        return res.json();
+      })
       .then(data => {
         setComments(data);
         setLoading(false);
@@ -18,7 +31,7 @@ const CommentsSection = ({ companyId, userId }) => {
         console.error('Erro ao carregar comentários:', err);
         setLoading(false);
       });
-  }, [companyId]);
+  }, [empresa]);
 
   const handleAddComment = async (e) => {
     e.preventDefault();
@@ -30,10 +43,11 @@ const CommentsSection = ({ companyId, userId }) => {
     };
 
     try {
-      const response = await fetch(`/api/comments/${companyId}`, {
+      const response = await fetch(`${API_URL}/comments/post/${empresa}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+            Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(commentData)
       });

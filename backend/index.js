@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import usersRoutes from "./Routes/users.js"; // Pode manter 'users' se preferir
 import { authenticate, authRoutes} from "./middleware/auth.js"; //
+import commentsRoutes from "./Routes/comments.js"; // Importando as rotas de comentários
 
 const app = express();
 
@@ -11,6 +12,8 @@ app.use(cors());
 // Montar rotas de usuários sob um prefixo /api para evitar conflitos e melhor organização
 app.use('/api/user', usersRoutes); // Agora as rotas de users.js estarão em /api/users/*
 app.use('/api/auth', authRoutes);   // Rotas de autenticação em /api/auth/*
+app.use('/api/comments', authenticate,commentsRoutes); // Rotas de comentários em /api/comments/*
+
 
 app.listen(8801, () => { //
     console.log("Backend server is running on port 8801");

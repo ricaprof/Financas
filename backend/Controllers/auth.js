@@ -84,13 +84,14 @@ export const login = async (req, res) => {
   
       const token = jwt.sign(
         {
-          id: user.idusers,
-          name: user.name,
+          id: user.id,
+          name: user.username,
         },
         SECRET,
         { expiresIn: "8h" }
       );
-  
+    
+
       res.status(200).json({
         message: "Login bem-sucedido",
         token,
