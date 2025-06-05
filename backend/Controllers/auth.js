@@ -36,13 +36,14 @@ export const register = async (req, res) => {
     try {
 
         //Verifica se o Usuário já existe
-        const [rows] = await db.query("SELECT * FROM users WHERE name = ?", [name]);
+        const [rows] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
         const existingUser = rows[0];
         if (existingUser) {
-            return res.status(409).json({ message: "Usuário já existe" });
+            return res.status(409).json({ message: "Usuário com este email já existe" });
         }
 
-        const result = await db.query("INSERT INTO users (name, password, email) VALUES (?, ?, ?)", [name, hashedPassword, email]);
+        const result = await db.query("INSERT INTO users (username, password_hash, email, created_at) VALUES (?, ?, ?, ?)",
+           [name, hashedPassword, email, new Date()]);
        
 
         const newUser = {
@@ -75,19 +76,11 @@ export const login = async (req, res) => {
       }
   
       const user = rows[0];
-      const isPasswordCorrect = await bcrypt.compare(password, user.password);
+      const isPasswordCorrect = await bcrypt.compare(password, user.password_hash);
   
       if (!isPasswordCorrect) {
         return res.status(401).json({ message: "Senha incorreta" });
       }
-  
-      // Buscar empresas do usuário
-      const [empresas] = await db.query(`
-        SELECT e.id, e.nome, ue.role
-        FROM users_empresa ue
-        JOIN empresa e ON ue.empresa_id = e.id
-        WHERE ue.user_id = ?
-      `, [user.idusers]);
   
       const token = jwt.sign(
         {
@@ -95,7 +88,7 @@ export const login = async (req, res) => {
           name: user.name,
         },
         SECRET,
-        { expiresIn: "1h" }
+        { expiresIn: "8h" }
       );
   
       res.status(200).json({
@@ -105,8 +98,7 @@ export const login = async (req, res) => {
           id: user.idusers,
           name: user.name,
           email: user.email,
-        },
-        empresas // << Aqui está a lista de empresas
+        }
       });
     } catch (error) {
       console.error("Erro ao processar login:", error);

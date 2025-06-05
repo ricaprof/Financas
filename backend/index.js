@@ -9,7 +9,7 @@ app.use(express.json());
 app.use(cors());
 
 // Montar rotas de usuários sob um prefixo /api para evitar conflitos e melhor organização
-app.use('/api/users', usersRoutes); // Agora as rotas de users.js estarão em /api/users/*
+app.use('/api/user', usersRoutes); // Agora as rotas de users.js estarão em /api/users/*
 app.use('/api/auth', authRoutes);   // Rotas de autenticação em /api/auth/*
 
 app.listen(8801, () => { //

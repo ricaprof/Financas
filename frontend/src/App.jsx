@@ -15,7 +15,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Inicio />} />
           <Route path="/acao/:empresa" element={token ? <Empresa /> : <Navigate to="/login" replace />} /> {/* Protegendo rota de ação */}
-          <Route path="/login" element={!token ? <Login /> : <Navigate to="/empresas" replace />} /> {/* Se logado, redireciona do login */}
+          <Route path="/login" element={< Login/> } /> {/* Rota de login sem proteção */} 
           <Route path="/empresas" element={token ? <Empresas /> : <Navigate to="/login" replace />} /> {/* Protegendo rota de empresas */}
           <Route 
             path="/perfil" 

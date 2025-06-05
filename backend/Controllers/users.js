@@ -2,14 +2,14 @@ import { db } from '../db.js'; //
 import bcrypt from "bcryptjs"; //
 
 export const getUsers = async (req, res) => { // Função existente
-  try {
-    // Selecionar apenas campos não sensíveis e não a senha
-    const [rows] = await db.query('SELECT idusers, name, email FROM users');
-    res.status(200).json(rows);
-  } catch (error) {
-    console.error("Erro ao buscar usuários:", error);
-    res.status(500).json({ error: 'Erro ao buscar usuários' });
-  }
+    try {
+        // Selecionar apenas campos não sensíveis e não a senha
+        const [rows] = await db.query('SELECT idusers, name, email FROM users');
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error("Erro ao buscar usuários:", error);
+        res.status(500).json({ error: 'Erro ao buscar usuários' });
+    }
 };
 
 export const getUserProfile = async (req, res) => {
@@ -17,13 +17,13 @@ export const getUserProfile = async (req, res) => {
     try {
         // Certifique-se de que sua tabela 'users' tenha as colunas theme_preference e notifications_enabled
         const [rows] = await db.query(
-            "SELECT idusers, name, email, theme_preference, notifications_enabled FROM users WHERE idusers = ?", 
+            "SELECT idusers, name, email, theme_preference, notifications_enabled FROM users WHERE idusers = ?",
             [userId]
         );
         if (rows.length === 0) {
             return res.status(404).json({ message: "Usuário não encontrado." });
         }
-        
+
         // Preparar o objeto de resposta, tratando valores nulos das preferências
         const userProfileData = rows[0];
         const profileResponse = {
@@ -33,7 +33,7 @@ export const getUserProfile = async (req, res) => {
             theme: userProfileData.theme_preference === null ? 'system' : userProfileData.theme_preference,
             notificationsEnabled: userProfileData.notifications_enabled === null ? true : Boolean(userProfileData.notifications_enabled)
         };
-        
+
         res.status(200).json(profileResponse);
     } catch (error) {
         console.error("Erro ao buscar perfil do usuário:", error);
@@ -57,7 +57,7 @@ export const updateUserProfile = async (req, res) => {
         }
 
         const [result] = await db.query("UPDATE users SET name = ?, email = ? WHERE idusers = ?", [nome, email, userId]);
-        
+
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: "Usuário não encontrado para atualização." });
         }
@@ -79,7 +79,7 @@ export const updateUserPassword = async (req, res) => {
     if (novaSenha !== confirmarNovaSenha) {
         return res.status(400).json({ message: "As novas senhas não coincidem." });
     }
-    if (novaSenha.length < 6) { 
+    if (novaSenha.length < 6) {
         return res.status(400).json({ message: "A nova senha deve ter pelo menos 6 caracteres." });
     }
     if (novaSenha === senhaAtual) {
@@ -138,7 +138,7 @@ export const updateUserPreferences = async (req, res) => {
 
     try {
         const [result] = await db.query("UPDATE users SET ? WHERE idusers = ?", [fieldsToUpdate, userId]);
-        
+
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: "Usuário não encontrado para atualizar preferências." });
         }
@@ -148,3 +148,39 @@ export const updateUserPreferences = async (req, res) => {
         res.status(500).json({ message: "Erro interno do servidor ao atualizar preferências." });
     }
 };
+
+
+export const Register = async (req, res) => {
+    const { username, email, password } = req.body;
+
+    // Validação simples
+    if (!username || !email || !password) {
+        return res.status(400).json({ error: 'Preencha todos os campos.' });
+    }
+
+    try {
+        // Verifica se usuário já existe
+        const [existing] = await db.execute(
+            'SELECT id FROM users WHERE email = ? OR username = ?',
+            [email, username]
+        );
+
+        if (existing.length > 0) {
+            return res.status(409).json({ error: 'Email ou usuário já cadastrado.' });
+        }
+
+        // Hash da senha
+        const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+
+        // Insere usuário
+        await db.execute(
+            'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
+            [username, email, password_hash]
+        );
+
+        return res.status(201).json({ message: 'Usuário criado com sucesso.' });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+}

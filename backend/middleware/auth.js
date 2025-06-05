@@ -1,7 +1,7 @@
 // Routes/auth.js
 import express from "express";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs"; //Acho que não precisa
+import bcrypt from "bcryptjs";
 
 import { register , login} from "../Controllers/auth.js";
 
@@ -9,6 +9,12 @@ import { register , login} from "../Controllers/auth.js";
 const router = express.Router();
 
 const SECRET = "sua_chave_supersecreta";
+
+// Simulação de "banco de dados"
+const users = [
+  { id: 1, username: "admin", password: bcrypt.hashSync("admin123", 8), role: "admin" },
+  { id: 2, username: "usuariox", password: bcrypt.hashSync("user123", 8), role: "user" }
+];
 
 
 
