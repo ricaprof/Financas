@@ -1,192 +1,144 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, Users, BarChart3, Target, Activity, AlertCircle, Loader, Building, Globe, TrendingUpIcon } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar } from 'recharts';
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, Brain, Calendar, Building, Users, Globe, RefreshCw, AlertCircle, Search } from 'lucide-react';
 
-const CompanyAnalysisDashboard = () => {
-  const [stockData, setStockData] = useState([]);
-  const [companyData, setCompanyData] = useState(null);
-  const [historicalData, setHistoricalData] = useState([]);
+const StockDashboard = () => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [stockData, setStockData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [ticker, setTicker] = useState('PETR4.SA');
-  const [activeTab, setActiveTab] = useState('overview');
+  const [symbol, setSymbol] = useState('');
+  const [aiAnalysis, setAiAnalysis] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // URL da sua API backend
-  const API_BASE_URL = 'http://localhost:8801/api/yahoo'; // Ajuste conforme necessário
-
-  // Função para extrair ticker da URL
-  const getTickerFromUrl = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlTicker = urlParams.get('ticker');
-    return urlTicker || 'PETR4.SA';
+  // Função para extrair o símbolo da URL
+  const getSymbolFromUrl = () => {
+    const path = window.location.pathname;
+    const matches = path.match(/\/acao\/([^\/]+)/);
+    return matches ? matches[1].toUpperCase() : 'BBAS3';
   };
 
-  // Função para buscar dados da empresa
-  const fetchCompanyData = async (symbol) => {
+  // Função para buscar dados da API
+  const fetchStockData = async (stockSymbol) => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      setError(null);
-
-      console.log(`Buscando dados para: ${symbol}`);
-
-      // Buscar dados completos da empresa
-      const companyResponse = await fetch(`${API_BASE_URL}/${symbol}`);
-      if (!companyResponse.ok) {
-        throw new Error(`Erro HTTP: ${companyResponse.status}`);
+      // Substitua pela URL da sua API
+      const response = await fetch(`http://localhost:8801/api/yahoo/${stockSymbol}`);
+      
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
       }
-      const companyData = await companyResponse.json();
-
-      // Buscar dados históricos
-      const historicalResponse = await fetch(`${API_BASE_URL}/${symbol}/history?period=1y&interval=1mo`);
-      if (!historicalResponse.ok) {
-        throw new Error(`Erro HTTP: ${historicalResponse.status}`);
-      }
-      const historicalResult = await historicalResponse.json();
-
-      setCompanyData(companyData);
-      setHistoricalData(historicalResult.data || []);
-      setStockData(historicalResult.data || []);
-
+      
+      const data = await response.json();
+      
+      // Assumindo que a resposta tem a estrutura: { dadosCompletos: {...}, graficoMensal: [...] }
+      const processedData = {
+        ...data.dadosCompletos,
+        historicalData: data.graficoMensal?.map(item => ({
+          date: new Date(item.date * 1000).toLocaleDateString('pt-BR'),
+          price: item.close,
+          volume: item.volume,
+          high: item.high,
+          low: item.low,
+          open: item.open
+        })) || []
+      };
+      
+      setStockData(processedData);
     } catch (err) {
+      setError(err.message);
       console.error('Erro ao buscar dados:', err);
-      setError(`Erro ao buscar dados: ${err.message}`);
-      // Fallback com dados simulados
-      setCompanyData(getSimulatedCompanyData(symbol));
-      setHistoricalData(getSimulatedHistoricalData());
-      setStockData(getSimulatedHistoricalData());
     } finally {
       setLoading(false);
     }
   };
 
-  // Dados simulados como fallback
-  const getSimulatedCompanyData = (symbol) => ({
-    companyInfo: {
-      symbol: symbol,
-      shortName: 'Petrobras',
-      longName: 'Petróleo Brasileiro S.A.',
-      sector: 'Energy',
-      industry: 'Oil & Gas Integrated',
-      country: 'Brazil',
-      employees: 45000
-    },
-    pricing: {
-      currentPrice: 28.45,
-      change: 0.85,
-      changePercent: 3.08,
-      dayHigh: 29.10,
-      dayLow: 27.80
-    },
-    volume: {
-      volume: 12500000,
-      avgVolume: 15600000,
-      volumeFormatted: '12.5M',
-      avgVolumeFormatted: '15.6M'
-    },
-    fundamentals: {
-      marketCap: 371000000000,
-      marketCapFormatted: 'R$ 371.0B',
-      peRatio: 8.4,
-      pbRatio: 1.2,
-      dividendYield: 0.068,
-      dividendYieldFormatted: '6.80%',
-      beta: 1.15
-    },
-    financialHealth: {
-      roe: 0.125,
-      roeFormatted: '12.50%',
-      roa: 0.08,
-      roaFormatted: '8.00%',
-      profitMargins: 0.183,
-      profitMarginsFormatted: '18.30%'
-    },
-    balance: {
-      totalDebt: 75000000000,
-      totalDebtFormatted: 'R$ 75.0B',
-      currentRatio: 2.8,
-      debtToEquity: 0.45
-    }
-  });
-
-  const getSimulatedHistoricalData = () => [
-    { month: 'Jan', price: '28.45', priceRaw: 28.45, volume: 1200000, high: '29.80', low: '27.20' },
-    { month: 'Fev', price: '29.12', priceRaw: 29.12, volume: 1350000, high: '30.50', low: '28.00' },
-    { month: 'Mar', price: '27.89', priceRaw: 27.89, volume: 1180000, high: '29.20', low: '26.50' },
-    { month: 'Abr', price: '30.55', priceRaw: 30.55, volume: 1420000, high: '32.10', low: '27.80' },
-    { month: 'Mai', price: '32.18', priceRaw: 32.18, volume: 1580000, high: '33.40', low: '30.20' },
-    { month: 'Jun', price: '31.67', priceRaw: 31.67, volume: 1490000, high: '33.80', low: '30.90' }
-  ];
-
+  // Carregar dados baseado na URL
   useEffect(() => {
-    const currentTicker = getTickerFromUrl();
-    setTicker(currentTicker);
-    fetchCompanyData(currentTicker);
+    const urlSymbol = getSymbolFromUrl();
+    setSymbol(urlSymbol);
+    fetchStockData(urlSymbol);
   }, []);
 
-  const handleTickerChange = (newTicker) => {
-    setTicker(newTicker);
-    const url = new URL(window.location);
-    url.searchParams.set('ticker', newTicker);
-    window.history.pushState({}, '', url);
-    fetchCompanyData(newTicker);
+  // Handle search for new stock
+  const handleSearch = () => {
+    if (symbol.trim()) {
+      // Atualizar URL sem recarregar a página
+      window.history.pushState({}, '', `/acao/${symbol.toUpperCase()}`);
+      fetchStockData(symbol.toUpperCase());
+    }
   };
 
-  const MetricCard = ({ title, tooltips, value, change, changePercent, icon: Icon, isPositive, subtitle }) => {
-    const [showTooltip, setShowTooltip] = useState(false);
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
 
-    return (
-      <div className="relative bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 w-full">
-        {tooltips && (
-          <button
-            onClick={() => setShowTooltip(!showTooltip)}
-            className="absolute top-2 right-2 text-gray-500 border border-gray-300 rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-gray-100 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label={showTooltip ? "Hide tooltip" : "Show tooltip"}
-          >
-            ?
-          </button>
-        )}
+  // Função para gerar análise da IA
+  const generateAIAnalysis = () => {
+    if (!stockData) return;
+    
+    setIsAnalyzing(true);
+    
+    // Simulação de análise da IA baseada nos dados
+    setTimeout(() => {
+      const currentPrice = stockData.regularMarketPrice;
+      const change = stockData.regularMarketChange;
+      const changePercent = stockData.regularMarketChangePercent;
+      const pe = stockData.priceEarnings;
+      const marketCap = stockData.marketCap;
+      
+      let analysis = `🤖 **Análise IA para ${stockData.symbol}**\n\n`;
+      
+      // Análise de preço
+      if (change > 0) {
+        analysis += `📈 **Movimento Positivo**: A ação está em alta de ${changePercent.toFixed(2)}%, sinalizando momentum positivo no curto prazo.\n\n`;
+      } else {
+        analysis += `📉 **Movimento Negativo**: A ação recuou ${Math.abs(changePercent).toFixed(2)}%, mas isso pode representar uma oportunidade de entrada.\n\n`;
+      }
+      
+      // Análise P/E
+      if (pe < 10) {
+        analysis += `💰 **P/E Atrativo**: Com P/E de ${pe.toFixed(2)}, a ação aparenta estar subvalorizada comparada ao setor bancário.\n\n`;
+      } else if (pe > 15) {
+        analysis += `⚠️ **P/E Elevado**: P/E de ${pe.toFixed(2)} pode indicar sobrevalorização. Cautela recomendada.\n\n`;
+      } else {
+        analysis += `✅ **P/E Equilibrado**: P/E de ${pe.toFixed(2)} está dentro de patamares razoáveis para o setor.\n\n`;
+      }
+      
+      // Análise de volume
+      analysis += `📊 **Volume**: Movimentação de ${(stockData.regularMarketVolume / 1000000).toFixed(1)}M de ações indica ${stockData.regularMarketVolume > 30000000 ? 'alto' : 'moderado'} interesse do mercado.\n\n`;
+      
+      // Recomendação final
+      const recommendation = change > 0 && pe < 12 ? 'COMPRA' : change < -2 && pe < 10 ? 'OPORTUNIDADE' : 'OBSERVAR';
+      analysis += `🎯 **Recomendação**: ${recommendation}\n\n`;
+      analysis += `⚠️ *Esta análise é apenas informativa e não constitui recomendação de investimento.*`;
+      
+      setAiAnalysis(analysis);
+      setIsAnalyzing(false);
+    }, 2000);
+  };
 
-        {showTooltip && tooltips && (
-          <div className="absolute top-8 right-2 z-10 text-xs rounded-md p-3 max-w-xs shadow-lg bg-gray-800 text-white border animate-fadeIn">
-            {tooltips}
-          </div>
-        )}
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
 
-        <div className="flex items-center space-x-3">
-          {Icon && <Icon className="h-8 w-8 text-blue-500" aria-hidden="true" />}
-          <div className="flex-1">
-            <h3 className="text-sm font-medium text-gray-600 truncate">{title}</h3>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-            {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
-            
-            {change !== undefined && changePercent !== undefined && (
-              <div className="flex items-center space-x-2 mt-2">
-                <span className={`text-sm font-semibold flex items-center ${
-                  isPositive ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {isPositive ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                  {Math.abs(changePercent).toFixed(2)}%
-                </span>
-                <span className={`text-sm ${
-                  isPositive ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  ({isPositive ? '+' : ''}{change.toFixed(2)})
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+  const formatNumber = (value) => {
+    return new Intl.NumberFormat('pt-BR').format(value);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader className="h-12 w-12 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">Carregando dados da empresa...</p>
-          <p className="text-gray-500 text-sm mt-2">Buscando informações do Yahoo Finance</p>
+          <RefreshCw className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-700 text-lg font-medium">Carregando dados...</p>
         </div>
       </div>
     );
@@ -194,414 +146,319 @@ const CompanyAnalysisDashboard = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Erro ao carregar dados</h2>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+        <div className="text-center bg-red-50 border border-red-200 rounded-2xl p-8 max-w-md shadow-lg">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-gray-800 text-xl font-bold mb-2">Erro ao carregar dados</h2>
           <p className="text-red-600 mb-4">{error}</p>
-          <p className="text-gray-600 mb-4">Exibindo dados simulados como exemplo</p>
-          <button
-            onClick={() => fetchCompanyData(ticker)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <button 
+            onClick={() => fetchStockData(getSymbolFromUrl())}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors shadow-md"
           >
-            Tentar Novamente
+            Tentar novamente
           </button>
         </div>
       </div>
     );
   }
 
-  const currentPrice = companyData?.pricing?.currentPrice || 0;
-  const priceChange = companyData?.pricing?.change || 0;
-  const priceChangePercent = companyData?.pricing?.changePercent || 0;
+  if (!stockData) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900">
-                {companyData?.companyInfo?.shortName || ticker}
-              </h1>
-              <p className="text-gray-600 mt-1">
-                {companyData?.companyInfo?.longName || 'Análise Completa da Empresa'}
-              </p>
-              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                <span className="flex items-center">
-                  <Building className="h-4 w-4 mr-1" />
-                  {companyData?.companyInfo?.sector || 'N/A'}
-                </span>
-                <span className="flex items-center">
-                  <Globe className="h-4 w-4 mr-1" />
-                  {companyData?.companyInfo?.country || 'N/A'}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 mb-6 border border-white/40 shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">{stockData.longName}</h1>
+              <div className="flex items-center gap-4">
+                <span className="text-2xl font-bold text-blue-600">{stockData.symbol}</span>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={symbol}
+                      onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                      onKeyPress={handleKeyPress}
+                      className="bg-gray-100 border border-gray-300 rounded-lg px-4 py-2 pr-10 text-gray-800 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Ex: PETR4"
+                    />
+                    <Search className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
+                  </div>
+                  <button
+                    onClick={handleSearch}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors shadow-md"
+                  >
+                    Buscar
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-4xl font-bold text-gray-800 mb-1">
+                {formatCurrency(stockData.regularMarketPrice)}
+              </div>
+              <div className={`flex items-center justify-end gap-2 ${stockData.regularMarketChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {stockData.regularMarketChange >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
+                <span className="text-lg font-semibold">
+                  {stockData.regularMarketChange >= 0 ? '+' : ''}{stockData.regularMarketChange?.toFixed(2)} 
+                  ({stockData.regularMarketChangePercent?.toFixed(2)}%)
                 </span>
               </div>
             </div>
-            
-            <div className="mt-4 md:mt-0 flex items-center space-x-4">
-              <input
-                type="text"
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value)}
-                placeholder="Digite o ticker (ex: PETR4.SA)"
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <button
-                onClick={() => handleTickerChange(ticker)}
-                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-              >
-                Buscar
-              </button>
+          </div>
+
+          {/* Métricas principais */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-r from-green-100 to-green-200 rounded-xl p-4 border border-green-300">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-5 h-5 text-green-700" />
+                <span className="text-gray-700 font-medium">Abertura</span>
+              </div>
+              <div className="text-xl font-bold text-gray-800">{formatCurrency(stockData.regularMarketOpen)}</div>
+            </div>
+            <div className="bg-gradient-to-r from-blue-100 to-blue-200 rounded-xl p-4 border border-blue-300">
+              <div className="flex items-center gap-2 mb-2">
+                <BarChart3 className="w-5 h-5 text-blue-700" />
+                <span className="text-gray-700 font-medium">Volume</span>
+              </div>
+              <div className="text-xl font-bold text-gray-800">{formatNumber(stockData.regularMarketVolume)}</div>
+            </div>
+            <div className="bg-gradient-to-r from-purple-100 to-purple-200 rounded-xl p-4 border border-purple-300">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-5 h-5 text-purple-700" />
+                <span className="text-gray-700 font-medium">Máx 52s</span>
+              </div>
+              <div className="text-xl font-bold text-gray-800">{formatCurrency(stockData.fiftyTwoWeekHigh)}</div>
+            </div>
+            <div className="bg-gradient-to-r from-orange-100 to-orange-200 rounded-xl p-4 border border-orange-300">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingDown className="w-5 h-5 text-orange-700" />
+                <span className="text-gray-700 font-medium">Mín 52s</span>
+              </div>
+              <div className="text-xl font-bold text-gray-800">{formatCurrency(stockData.fiftyTwoWeekLow)}</div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* Tabs */}
-        <div className="mb-6">
-          <nav className="flex space-x-8" aria-label="Tabs">
+        {/* Navegação */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-3 mb-6 border border-white/40 shadow-lg">
+          <div className="flex gap-2">
             {[
-              { id: 'overview', name: 'Visão Geral', icon: BarChart3 },
-              { id: 'financials', name: 'Fundamentalista', icon: DollarSign },
-              { id: 'charts', name: 'Gráficos', icon: TrendingUp },
-              { id: 'company', name: 'Empresa', icon: Building }
-            ].map((tab) => {
+              { id: 'overview', label: 'Visão Geral', icon: BarChart3 },
+              { id: 'fundamentals', label: 'Fundamentos', icon: Building },
+              { id: 'ai', label: 'Análise IA', icon: Brain }
+            ].map(tab => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  } border-b-2 px-3 py-2 flex items-center space-x-2 focus:outline-none`}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl transition-all font-medium ${
+                    activeTab === tab.id 
+                      ? 'bg-blue-600 text-white shadow-lg' 
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                  }`}
                 >
-                  <Icon className="h-5 w-5" />
-                  <span>{tab.name}</span>
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
                 </button>
               );
             })}
-          </nav>
-        </div>  
-    {/* Overview Tab */}
-    {activeTab === 'overview' && (
-      <div className="space-y-6">
-        {/* Price and Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <MetricCard
-            title="Preço Atual"
-            value={`R$ ${currentPrice.toFixed(2)}`}
-            change={priceChange}
-            changePercent={priceChangePercent}
-            isPositive={priceChange >= 0}
-            icon={DollarSign}
-            tooltips="Preço atual da ação no mercado"
-          />
-          <MetricCard
-            title="Valor de Mercado"
-            value={companyData?.fundamentals?.marketCapFormatted || 'N/A'}
-            icon={Target}
-            tooltips="Valor total de mercado da empresa (preço da ação × total de ações)"
-          />
-          <MetricCard
-            title="P/L"
-            value={companyData?.fundamentals?.peRatio?.toFixed(2) || 'N/A'}
-            icon={Activity}
-            tooltips="Relação Preço/Lucro (indica quanto os investidores estão dispostos a pagar por cada unidade de lucro)"
-          />
-          <MetricCard
-            title="Dividend Yield"
-            value={companyData?.fundamentals?.dividendYieldFormatted || 'N/A'}
-            icon={TrendingUpIcon}
-            tooltips="Rendimento de dividendos em relação ao preço da ação"
-          />
-        </div>
-
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-4">Histórico de Preços (12 meses)</h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={historicalData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="month" />
-                  <YAxis domain={['auto', 'auto']} />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="priceRaw" stroke="#3b82f6" fill="#93c5fd" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-4">Volume Negociado</h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={historicalData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="volume" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
           </div>
         </div>
 
-        {/* Additional Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricCard
-            title="ROE"
-            value={companyData?.financialHealth?.roeFormatted || 'N/A'}
-            icon={Activity}
-            tooltips="Retorno sobre o Patrimônio Líquido (mede a eficiência na geração de lucros com o capital próprio)"
-          />
-          <MetricCard
-            title="Margem Líquida"
-            value={companyData?.financialHealth?.profitMarginsFormatted || 'N/A'}
-            icon={Activity}
-            tooltips="Percentual de lucro em relação à receita total"
-          />
-          <MetricCard
-            title="Dívida/Patrimônio"
-            value={companyData?.balance?.debtToEquity?.toFixed(2) || 'N/A'}
-            icon={AlertCircle}
-            tooltips="Relação entre dívida total e patrimônio líquido (indica alavancagem)"
-          />
-        </div>
-      </div>
-    )}
+        {/* Conteúdo das abas */}
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Gráfico de preço */}
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-xl lg:col-span-2">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Evolução do Preço (3 meses)</h3>
+              {stockData.historicalData && stockData.historicalData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <AreaChart data={stockData.historicalData}>
+                    <defs>
+                      <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis dataKey="date" stroke="#6B7280" fontSize={12} />
+                    <YAxis stroke="#6B7280" fontSize={12} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '12px',
+                        color: '#1F2937',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                      }} 
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="price" 
+                      stroke="#3B82F6" 
+                      fillOpacity={1} 
+                      fill="url(#colorPrice)" 
+                      strokeWidth={3}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-96 flex items-center justify-center text-gray-500">
+                  Dados históricos não disponíveis
+                </div>
+              )}
+            </div>
 
-    {/* Financials Tab */}
-    {activeTab === 'financials' && (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-4">Indicadores Fundamentais</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-600">P/L (Preço/Lucro)</span>
-                <span className="font-medium">{companyData?.fundamentals?.peRatio?.toFixed(2) || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-600">P/VP (Preço/Valor Patrimonial)</span>
-                <span className="font-medium">{companyData?.fundamentals?.pbRatio?.toFixed(2) || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-600">Dividend Yield</span>
-                <span className="font-medium">{companyData?.fundamentals?.dividendYieldFormatted || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-600">Beta (Volatilidade)</span>
-                <span className="font-medium">{companyData?.fundamentals?.beta?.toFixed(2) || 'N/A'}</span>
-              </div>
+            {/* Volume */}
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-xl lg:col-span-2">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Volume de Negociação</h3>
+              {stockData.historicalData && stockData.historicalData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={stockData.historicalData.slice(-20)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis dataKey="date" stroke="#6B7280" fontSize={12} />
+                    <YAxis stroke="#6B7280" fontSize={12} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '12px',
+                        color: '#1F2937',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                      }} 
+                    />
+                    <Bar dataKey="volume" fill="#10B981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-72 flex items-center justify-center text-gray-500">
+                  Dados de volume não disponíveis
+                </div>
+              )}
             </div>
           </div>
+        )}
 
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-4">Saúde Financeira</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-600">Dívida Total</span>
-                <span className="font-medium">{companyData?.balance?.totalDebtFormatted || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-600">Dívida/Patrimônio</span>
-                <span className="font-medium">{companyData?.balance?.debtToEquity?.toFixed(2) || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-600">Current Ratio</span>
-                <span className="font-medium">{companyData?.balance?.currentRatio?.toFixed(2) || 'N/A'}</span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-600">Margem Líquida</span>
-                <span className="font-medium">{companyData?.financialHealth?.profitMarginsFormatted || 'N/A'}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4">Rentabilidade</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 border rounded-lg">
-              <h4 className="text-sm font-medium text-gray-500">ROE</h4>
-              <p className="text-2xl font-bold mt-1">{companyData?.financialHealth?.roeFormatted || 'N/A'}</p>
-              <p className="text-xs text-gray-500 mt-1">Retorno sobre Patrimônio</p>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <h4 className="text-sm font-medium text-gray-500">ROA</h4>
-              <p className="text-2xl font-bold mt-1">{companyData?.financialHealth?.roaFormatted || 'N/A'}</p>
-              <p className="text-xs text-gray-500 mt-1">Retorno sobre Ativos</p>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <h4 className="text-sm font-medium text-gray-500">ROIC</h4>
-              <p className="text-2xl font-bold mt-1">N/A</p>
-              <p className="text-xs text-gray-500 mt-1">Retorno sobre Capital Investido</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
-
-    {/* Charts Tab */}
-    {activeTab === 'charts' && (
-      <div className="space-y-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4">Histórico de Preços</h3>
-          <div className="h-96">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={historicalData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" />
-                <YAxis domain={['auto', 'auto']} />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="priceRaw" stroke="#3b82f6" strokeWidth={2} name="Preço (R$)" />
-                <Line type="monotone" dataKey="high" stroke="#10b981" strokeWidth={1} name="Máxima" />
-                <Line type="monotone" dataKey="low" stroke="#ef4444" strokeWidth={1} name="Mínima" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-4">Volume Negociado</h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={historicalData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="volume" fill="#8884d8" name="Volume" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-semibold mb-4">Distribuição de Preços</h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Mínima', value: historicalData.reduce((acc, curr) => acc + parseFloat(curr.low || 0), 0) },
-                      { name: 'Média', value: historicalData.reduce((acc, curr) => acc + parseFloat(curr.priceRaw || 0), 0) / historicalData.length },
-                      { name: 'Máxima', value: historicalData.reduce((acc, curr) => acc + parseFloat(curr.high || 0), 0) }
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    <Cell fill="#3b82f6" />
-                    <Cell fill="#10b981" />
-                    <Cell fill="#ef4444" />
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
-
-    {/* Company Tab */}
-    {activeTab === 'company' && (
-      <div className="space-y-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4">Informações da Empresa</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-md font-medium text-gray-700 mb-3">Dados Gerais</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Nome</span>
-                  <span className="font-medium">{companyData?.companyInfo?.longName || 'N/A'}</span>
+        {activeTab === 'fundamentals' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-xl">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-green-600" />
+                Valuation
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600 font-medium">P/L</span>
+                  <span className="text-gray-800 font-bold text-lg">{stockData.priceEarnings?.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Setor</span>
-                  <span className="font-medium">{companyData?.companyInfo?.sector || 'N/A'}</span>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600 font-medium">LPA</span>
+                  <span className="text-gray-800 font-bold text-lg">{formatCurrency(stockData.earningsPerShare)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Indústria</span>
-                  <span className="font-medium">{companyData?.companyInfo?.industry || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">País</span>
-                  <span className="font-medium">{companyData?.companyInfo?.country || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Funcionários</span>
-                  <span className="font-medium">{companyData?.companyInfo?.employees?.toLocaleString() || 'N/A'}</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-md font-medium text-gray-700 mb-3">Atividade no Mercado</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Ticker</span>
-                  <span className="font-medium">{companyData?.companyInfo?.symbol || ticker}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Volume Médio</span>
-                  <span className="font-medium">{companyData?.volume?.avgVolumeFormatted || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Volume (último dia)</span>
-                  <span className="font-medium">{companyData?.volume?.volumeFormatted || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Variação (dia)</span>
-                  <span className={`font-medium ${priceChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {priceChangePercent?.toFixed(2)}% ({priceChange >= 0 ? '+' : ''}{priceChange?.toFixed(2)})
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600 font-medium">Valor de Mercado</span>
+                  <span className="text-gray-800 font-bold text-lg">
+                    R$ {(stockData.marketCap / 1000000000).toFixed(1)}B
                   </span>
                 </div>
               </div>
             </div>
+
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-xl">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Building className="w-5 h-5 text-blue-600" />
+                Informações da Empresa
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600 font-medium">Setor</span>
+                  <span className="text-gray-800 font-bold">Financeiro</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600 font-medium">Segmento</span>
+                  <span className="text-gray-800 font-bold">Bancos</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600 font-medium">Funcionários</span>
+                  <span className="text-gray-800 font-bold">85.953</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-xl">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-purple-600" />
+                Métricas de Mercado
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600 font-medium">Variação Dia</span>
+                  <span className={`font-bold text-lg ${stockData.regularMarketChangePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {stockData.regularMarketChangePercent?.toFixed(2)}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600 font-medium">Máxima do Dia</span>
+                  <span className="text-gray-800 font-bold text-lg">{formatCurrency(stockData.regularMarketDayHigh)}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <span className="text-gray-600 font-medium">Mínima do Dia</span>
+                  <span className="text-gray-800 font-bold text-lg">{formatCurrency(stockData.regularMarketDayLow)}</span>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4">Descrição da Empresa</h3>
-          <p className="text-gray-700">
-            {companyData?.companyInfo?.longName || 'Nome da empresa'} é uma empresa do setor de {companyData?.companyInfo?.sector || 'setor'} 
-            que atua principalmente na área de {companyData?.companyInfo?.industry || 'indústria'}. Com sede em {companyData?.companyInfo?.country || 'país'}, 
-            a empresa possui aproximadamente {companyData?.companyInfo?.employees?.toLocaleString() || 'N/A'} funcionários.
-          </p>
-          <p className="text-gray-700 mt-3">
-            Esta análise fornece uma visão geral dos principais indicadores financeiros e de mercado da empresa, 
-            permitindo uma avaliação completa de seu desempenho e potencial de investimento.
-          </p>
-        </div>
+        {activeTab === 'ai' && (
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/40 shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <Brain className="w-6 h-6 text-purple-600" />
+                Análise Inteligente
+              </h3>
+              <button
+                onClick={generateAIAnalysis}
+                disabled={isAnalyzing}
+                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 disabled:from-purple-400 disabled:to-purple-500 text-white px-6 py-3 rounded-xl transition-all shadow-lg flex items-center gap-2 font-medium"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Analisando...
+                  </>
+                ) : (
+                  <>
+                    <Brain className="w-4 h-4" />
+                    Gerar Análise
+                  </>
+                )}
+              </button>
+            </div>
+
+            {aiAnalysis ? (
+              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-6 border border-purple-200 shadow-inner">
+                <div className="text-gray-800 whitespace-pre-line leading-relaxed font-medium">
+                  {aiAnalysis}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <div className="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-4">
+                  <Brain className="w-12 h-12 text-purple-600" />
+                </div>
+                <p className="text-gray-600 text-lg font-medium">Clique em "Gerar Análise" para obter insights inteligentes sobre esta ação</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-    )}
-  </div>
-
-  {/* Footer */}
-  <div className="bg-white border-t mt-8 py-6">
-    <div className="max-w-7xl mx-auto px-6 text-center text-gray-500 text-sm">
-      <p>Dados fornecidos pelo Yahoo Finance. Última atualização: {new Date().toLocaleDateString()}</p>
-      <p className="mt-2">Esta análise não constitui recomendação de investimento.</p>
     </div>
-  </div>
-</div>
   );
-}
-export default CompanyAnalysisDashboard;
+};
+
+export default StockDashboard;

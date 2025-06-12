@@ -1,6 +1,8 @@
 import express from 'express';
 import yahooFinance from 'yahoo-finance2';
 
+
+
 const router = express.Router();
 
 // Função auxiliar para formatar números

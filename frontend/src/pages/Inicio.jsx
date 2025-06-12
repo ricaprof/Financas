@@ -16,7 +16,7 @@ const IntroductionPage = () => {
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a 
-              href="/acao/1" 
+              href="/acao/BBAS3" 
               className="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
             >
               Acessar empresas <ArrowRight className="ml-2 h-5 w-5" />

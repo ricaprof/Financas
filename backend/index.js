@@ -4,6 +4,7 @@ import usersRoutes from "./Routes/users.js"; // Pode manter 'users' se preferir
 import { authenticate, authRoutes} from "./middleware/auth.js"; //
 import commentsRoutes from "./Routes/comments.js"; // Importando as rotas de comentários
 import yahooFinanceRoutes from "./Routes/yahoo.js"; // Importando as rotas de Yahoo Finance
+import axios from "axios"; // Importando axios para fazer requisições HTTP
 
 const app = express();
 
@@ -14,7 +15,49 @@ app.use(cors());
 app.use('/api/user', usersRoutes); // Agora as rotas de users.js estarão em /api/users/*
 app.use('/api/auth', authRoutes);   // Rotas de autenticação em /api/auth/*
 app.use('/api/comments', authenticate, commentsRoutes); // Rotas de comentários em /api/comments/*
-app.use('/api/yahoo', yahooFinanceRoutes); // Rotas de Yahoo Finance em /api/yahoo/*
+
+const BRAPI_TOKEN = '6bJnvRHPvWoYdSmgtX18Ly'; // Seu token com Bearer
+
+app.get('/api/yahoo/:ticker', async (req, res) => {
+  const { ticker } = req.params;
+
+  try {
+    const response = await axios.get(`https://brapi.dev/api/quote/${ticker}`, {
+      params: {
+        range: '3mo',                 // 1 ano
+        interval: '1d',             // intervalo mensal (ideal para gráfico)
+        fundamental: true,
+        dividends: false,
+        modules: 'summaryProfile'
+      },
+      headers: {
+        Authorization: `Bearer ${BRAPI_TOKEN}`,
+      }
+    });
+
+    const resultado = response.data.results?.[0];
+
+    if (!resultado) {
+      return res.status(404).json({ erro: 'Ticker não encontrado' });
+    }
+
+    res.json({
+      dadosCompletos: resultado,
+      graficoMensal: resultado.historicalDataPrice || [],
+    });
+
+  } catch (error) {
+    if (error.response) {
+      console.error('Erro na resposta:', error.response.status, error.response.data);
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      console.error('Erro:', error.message);
+      res.status(500).json({ erro: 'Erro desconhecido ao acessar a BRAPI' });
+    }
+  }
+});
+
+
 
 
 app.listen(8801, () => { //
