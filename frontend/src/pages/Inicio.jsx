@@ -36,13 +36,13 @@ const IntroductionPage = () => {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between">
           <div className="flex items-center mb-4 md:mb-0">
             <Globe className="h-6 w-6 mr-3" />
-            <h3 className="text-lg font-semibold">Acompanhe as últimas notícias do mercado em tempo real</h3>
+            <h3 className="text-lg font-semibold">Veja nosso curso Interativo de como Investior</h3>
           </div>
           <a 
-            href="/news" 
+            href="/curso" 
             className="px-4 py-2 bg-white text-blue-600 font-medium rounded hover:bg-blue-50 transition-colors flex items-center"
           >
-            Ver Notícias <ArrowRight className="ml-2 h-4 w-4" />
+            Ver Curso <ArrowRight className="ml-2 h-4 w-4" />
           </a>
         </div>
       </div>

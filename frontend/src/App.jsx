@@ -6,6 +6,7 @@ import Login from './pages/Login'; //
 import Inicio from './pages/Inicio'; //
 import Empresas from './pages/Empresas'; //
 import PerfilUsuario from './pages/PerfilUsuario'; // Nova importação
+import Curso from './pages/Curso';
 
 function App() {
   const token = localStorage.getItem("accessToken"); //
@@ -23,6 +24,7 @@ function App() {
           /> {/* Nova rota protegida */}
           {/* Adicionar uma rota para lidar com 404 ou redirecionar para Início */}
           <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/curso" element={<Curso /> } />
         </Routes>
     </Router>
   );

@@ -77,50 +77,62 @@ const StockDashboard = () => {
     }
   };
 
-  // Função para gerar análise da IA
-  const generateAIAnalysis = () => {
-    if (!stockData) return;
-    
-    setIsAnalyzing(true);
-    
-    // Simulação de análise da IA baseada nos dados
-    setTimeout(() => {
-      const currentPrice = stockData.regularMarketPrice;
-      const change = stockData.regularMarketChange;
-      const changePercent = stockData.regularMarketChangePercent;
-      const pe = stockData.priceEarnings;
-      const marketCap = stockData.marketCap;
-      
-      let analysis = `🤖 **Análise IA para ${stockData.symbol}**\n\n`;
-      
-      // Análise de preço
-      if (change > 0) {
-        analysis += `📈 **Movimento Positivo**: A ação está em alta de ${changePercent.toFixed(2)}%, sinalizando momentum positivo no curto prazo.\n\n`;
-      } else {
-        analysis += `📉 **Movimento Negativo**: A ação recuou ${Math.abs(changePercent).toFixed(2)}%, mas isso pode representar uma oportunidade de entrada.\n\n`;
-      }
-      
-      // Análise P/E
-      if (pe < 10) {
-        analysis += `💰 **P/E Atrativo**: Com P/E de ${pe.toFixed(2)}, a ação aparenta estar subvalorizada comparada ao setor bancário.\n\n`;
-      } else if (pe > 15) {
-        analysis += `⚠️ **P/E Elevado**: P/E de ${pe.toFixed(2)} pode indicar sobrevalorização. Cautela recomendada.\n\n`;
-      } else {
-        analysis += `✅ **P/E Equilibrado**: P/E de ${pe.toFixed(2)} está dentro de patamares razoáveis para o setor.\n\n`;
-      }
-      
-      // Análise de volume
-      analysis += `📊 **Volume**: Movimentação de ${(stockData.regularMarketVolume / 1000000).toFixed(1)}M de ações indica ${stockData.regularMarketVolume > 30000000 ? 'alto' : 'moderado'} interesse do mercado.\n\n`;
-      
-      // Recomendação final
-      const recommendation = change > 0 && pe < 12 ? 'COMPRA' : change < -2 && pe < 10 ? 'OPORTUNIDADE' : 'OBSERVAR';
-      analysis += `🎯 **Recomendação**: ${recommendation}\n\n`;
-      analysis += `⚠️ *Esta análise é apenas informativa e não constitui recomendação de investimento.*`;
-      
-      setAiAnalysis(analysis);
-      setIsAnalyzing(false);
-    }, 2000);
-  };
+ const generateAIAnalysis = () => {
+  if (!stockData) return;
+
+  setIsAnalyzing(true);
+
+  setTimeout(() => {
+    const {
+      symbol,
+      regularMarketPrice: price,
+      regularMarketChange: change,
+      regularMarketChangePercent: changePercent,
+      priceEarnings: pe,
+      regularMarketVolume: volume,
+    } = stockData;
+
+    const formatChangeAnalysis = () =>
+      change > 0
+        ? `📈 O papel apresenta valorização de ${changePercent?.toFixed(2)}%, sugerindo tendência positiva no curto prazo.`
+        : `📉 A ação recuou ${Math.abs(changePercent)?.toFixed(2)}%, o que pode indicar realização de lucros ou ajuste de mercado.`;
+
+    const formatPEAnalysis = () => {
+      if (typeof pe !== 'number') return null;
+
+      return [
+        pe < 10 && `💰 O P/L de ${pe.toFixed(2)} sugere possível subvalorização frente ao setor.`,
+        pe > 15 && `⚠️ O P/L de ${pe.toFixed(2)} pode indicar preço elevado em relação aos lucros.`,
+        pe >= 10 && pe <= 15 && `✅ O P/L de ${pe.toFixed(2)} está em linha com a média do setor.`,
+      ].filter(Boolean)[0];
+    };
+
+    const formatVolumeAnalysis = () => {
+      const volMilhoes = (volume / 1e6).toFixed(1);
+      const interesse = volume > 30000000 ? 'forte' : 'moderado';
+      return `📊 Volume negociado de ${volMilhoes}M de ações, refletindo ${interesse} interesse do mercado.`;
+    };
+
+    const getRecommendation = () => {
+      if (change > 0 && pe < 12) return 'COMPRA';
+      if (change < -2 && pe < 10) return 'OPORTUNIDADE';
+      return 'OBSERVAR';
+    };
+
+    const analysis = [
+      `🤖 **Análise IA para ${symbol}**`,
+      formatChangeAnalysis(),
+      formatPEAnalysis(),
+      formatVolumeAnalysis(),
+      `🎯 **Recomendação**: ${getRecommendation()}`,
+      `\n⚠️ *Esta análise é gerada automaticamente e não constitui recomendação de investimento.*`,
+    ];
+
+    setAiAnalysis(analysis.filter(Boolean).join('\n\n'));
+    setIsAnalyzing(false);
+  }, 2000);
+};
+
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
